@@ -1,0 +1,9 @@
+import '../models/announcement_model.dart';
+import '../models/assignment_model.dart';
+import '../models/class_model.dart';
+import '../models/grade_model.dart';
+import '../models/report_model.dart';
+import '../models/student_model.dart';
+import '../models/subject_model.dart';
+import '../models/teacher_model.dart';
+import '../models/timetable_model.dart';

@@ -3,6 +3,8 @@ import 'package:shimmer/shimmer.dart';
 import 'package:report_portal_boom/models/quick_stats_model.dart';
 import 'package:report_portal_boom/constants/app_colors.dart';
 
+import '../constants/app_colors.dart';
+
 /// Quick stats widget with shimmer loading effect
 class QuickStatsWidget extends StatelessWidget {
   final QuickStatsModel stats;

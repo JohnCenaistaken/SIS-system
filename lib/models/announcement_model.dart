@@ -1,59 +1,39 @@
-/// Announcement model for SIS system
-class Announcement {
+enum AnnouncementCategory { administration, academics, events, general, sports }
+enum AnnouncementAudience { all, students, teachers, grade10, grade11, grade12 }
+
+class AnnouncementModel {
   final String id;
   final String title;
-  final String content;
-  final DateTime date;
-  final AnnouncementPriority priority;
-  final String? author;
-  final bool isExpanded;
+  final String body;
+  final AnnouncementCategory category;
+  final String authorId;
+  final DateTime publishedAt;
+  final AnnouncementAudience targetAudience;
+  final bool isPinned;
 
-  Announcement({
+  const AnnouncementModel({
     required this.id,
     required this.title,
-    required this.content,
-    required this.date,
-    required this.priority,
-    this.author,
-    this.isExpanded = false,
+    required this.body,
+    required this.category,
+    required this.authorId,
+    required this.publishedAt,
+    required this.targetAudience,
+    required this.isPinned,
   });
 
-  Announcement copyWith({
-    String? id,
-    String? title,
-    String? content,
-    DateTime? date,
-    AnnouncementPriority? priority,
-    String? author,
-    bool? isExpanded,
-  }) {
-    return Announcement(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      content: content ?? this.content,
-      date: date ?? this.date,
-      priority: priority ?? this.priority,
-      author: author ?? this.author,
-      isExpanded: isExpanded ?? this.isExpanded,
-    );
-  }
-}
-
-enum AnnouncementPriority {
-  urgent,
-  important,
-  normal,
-}
-
-extension AnnouncementPriorityExtension on AnnouncementPriority {
-  String get label {
-    switch (this) {
-      case AnnouncementPriority.urgent:
-        return 'Urgent';
-      case AnnouncementPriority.important:
-        return 'Important';
-      case AnnouncementPriority.normal:
-        return 'Normal';
+  String get categoryLabel {
+    switch (category) {
+      case AnnouncementCategory.administration:
+        return 'Administration';
+      case AnnouncementCategory.academics:
+        return 'Academics';
+      case AnnouncementCategory.events:
+        return 'Events';
+      case AnnouncementCategory.general:
+        return 'General';
+      case AnnouncementCategory.sports:
+        return 'Sports';
     }
   }
 }

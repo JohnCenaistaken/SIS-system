@@ -1,17 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:report_portal_boom/constants/app_colors.dart';
+import 'app_colors.dart';
 
-/// App theme configuration with Material Design 3
 class AppTheme {
   AppTheme._();
 
-  /// Light theme
+  static const double _cardRadius = 12;
+
+  // Helper method to get fonts with fallbacks
+  static TextStyle _getPoppinsStyle({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    FontStyle? fontStyle,
+  }) {
+    return GoogleFonts.poppins(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      fontStyle: fontStyle,
+    ).copyWith(
+      fontFamilyFallback: const ['Roboto', 'Arial', 'sans-serif'],
+    );
+  }
+
+  static TextStyle _getRobotoStyle({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    FontStyle? fontStyle,
+  }) {
+    return GoogleFonts.roboto(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      fontStyle: fontStyle,
+    ).copyWith(
+      fontFamilyFallback: const ['Arial', 'sans-serif'],
+    );
+  }
+
+  // ---------- LIGHT THEME ----------
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      colorScheme: ColorScheme.light(
+
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primaryBlue,
         secondary: AppColors.secondaryGreen,
         tertiary: AppColors.accentOrange,
@@ -23,51 +58,11 @@ class AppTheme {
         onSurface: AppColors.textPrimary,
         onError: Colors.white,
       ),
+
       scaffoldBackgroundColor: AppColors.backgroundLight,
-      textTheme: GoogleFonts.robotoTextTheme().copyWith(
-        displayLarge: GoogleFonts.poppins(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
-        ),
-        displayMedium: GoogleFonts.poppins(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
-        ),
-        displaySmall: GoogleFonts.poppins(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
-        ),
-        headlineMedium: GoogleFonts.poppins(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
-        titleLarge: GoogleFonts.roboto(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
-        ),
-        bodyLarge: GoogleFonts.roboto(
-          fontSize: 16,
-          color: AppColors.textPrimary,
-        ),
-        bodyMedium: GoogleFonts.roboto(
-          fontSize: 14,
-          color: AppColors.textSecondary,
-        ),
-        bodySmall: GoogleFonts.roboto(
-          fontSize: 12,
-          color: AppColors.textSecondary,
-        ),
-      ),
+
       cardTheme: CardThemeData(
         elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
         color: AppColors.surfaceLight,
         surfaceTintColor: AppColors.primaryBlue.withOpacity(0.05),
         shadowColor: Colors.black.withOpacity(0.08),
@@ -76,7 +71,54 @@ class AppTheme {
           horizontal: AppColors.spacingM,
           vertical: AppColors.spacingS,
         ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_cardRadius),
+        ),
       ),
+
+      textTheme: TextTheme(
+        // Headings with Poppins
+        displayLarge: _getPoppinsStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+        displayMedium: _getPoppinsStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+        displaySmall: _getPoppinsStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+        headlineMedium: _getPoppinsStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        titleLarge: _getPoppinsStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+
+        // Body text with Roboto
+        bodyLarge: _getRobotoStyle(
+          fontSize: 16,
+          color: AppColors.textPrimary,
+        ),
+        bodyMedium: _getRobotoStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+        ),
+        bodySmall: _getRobotoStyle(
+          fontSize: 12,
+          color: AppColors.textSecondary,
+        ),
+      ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 2,
@@ -85,109 +127,69 @@ class AppTheme {
             vertical: 12,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(_cardRadius),
           ),
-          backgroundColor: AppColors.primaryBlue, // Explicit color
-          foregroundColor: Colors.white, // Text/icon color
+          backgroundColor: AppColors.primaryBlue,
+          foregroundColor: Colors.white,
+          textStyle: _getPoppinsStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 12,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          side: BorderSide(color: AppColors.primaryBlue), // Border color
-        ),
-      ),
+
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade400),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryBlue, width: 2),
-        ),
         filled: true,
         fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_cardRadius),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(_cardRadius)),
+          borderSide: BorderSide(color: AppColors.primaryBlue, width: 2),
+        ),
+        labelStyle: _getRobotoStyle(fontSize: 14),
+        hintStyle: _getRobotoStyle(fontSize: 14, color: Colors.grey),
       ),
+
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 2,
         centerTitle: true,
+        titleTextStyle: _getPoppinsStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
       ),
     );
   }
 
-  /// Dark theme
+  // ---------- DARK THEME ----------
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.dark(
+
+      colorScheme: const ColorScheme.dark(
         primary: AppColors.primaryBlueLight,
         secondary: AppColors.secondaryGreenLight,
         tertiary: AppColors.accentOrangeLight,
         surface: AppColors.surfaceDark,
-        background: AppColors.backgroundDark,
         error: AppColors.error,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onTertiary: Colors.white,
         onSurface: AppColors.textPrimaryDark,
-        onBackground: AppColors.textPrimaryDark,
         onError: Colors.white,
       ),
+
       scaffoldBackgroundColor: AppColors.backgroundDark,
-      textTheme: GoogleFonts.robotoTextTheme(ThemeData.dark().textTheme).copyWith(
-        displayLarge: GoogleFonts.poppins(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimaryDark,
-        ),
-        displayMedium: GoogleFonts.poppins(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimaryDark,
-        ),
-        displaySmall: GoogleFonts.poppins(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimaryDark,
-        ),
-        headlineMedium: GoogleFonts.poppins(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimaryDark,
-        ),
-        titleLarge: GoogleFonts.roboto(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimaryDark,
-        ),
-        bodyLarge: GoogleFonts.roboto(
-          fontSize: 16,
-          color: AppColors.textPrimaryDark,
-        ),
-        bodyMedium: GoogleFonts.roboto(
-          fontSize: 14,
-          color: AppColors.textSecondaryDark,
-        ),
-        bodySmall: GoogleFonts.roboto(
-          fontSize: 12,
-          color: AppColors.textSecondaryDark,
-        ),
-      ),
+
       cardTheme: CardThemeData(
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
         color: AppColors.surfaceDark,
         surfaceTintColor: AppColors.primaryBlueLight.withOpacity(0.1),
         shadowColor: Colors.black.withOpacity(0.4),
@@ -196,7 +198,54 @@ class AppTheme {
           horizontal: AppColors.spacingM,
           vertical: AppColors.spacingS,
         ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_cardRadius),
+        ),
       ),
+
+      textTheme: TextTheme(
+        // Headings with Poppins
+        displayLarge: _getPoppinsStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimaryDark,
+        ),
+        displayMedium: _getPoppinsStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimaryDark,
+        ),
+        displaySmall: _getPoppinsStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimaryDark,
+        ),
+        headlineMedium: _getPoppinsStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryDark,
+        ),
+        titleLarge: _getPoppinsStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimaryDark,
+        ),
+
+        // Body text with Roboto
+        bodyLarge: _getRobotoStyle(
+          fontSize: 16,
+          color: AppColors.textPrimaryDark,
+        ),
+        bodyMedium: _getRobotoStyle(
+          fontSize: 14,
+          color: AppColors.textSecondaryDark,
+        ),
+        bodySmall: _getRobotoStyle(
+          fontSize: 12,
+          color: AppColors.textSecondaryDark,
+        ),
+      ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 2,
@@ -205,41 +254,43 @@ class AppTheme {
             vertical: 12,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(_cardRadius),
           ),
           backgroundColor: AppColors.primaryBlueLight,
           foregroundColor: Colors.white,
+          textStyle: _getPoppinsStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 12,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          side: BorderSide(color: AppColors.primaryBlueLight),
-        ),
-      ),
+
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade700),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryBlueLight, width: 2),
-        ),
         filled: true,
         fillColor: AppColors.surfaceDark,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_cardRadius),
+          borderSide: BorderSide(color: Colors.grey.shade700),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(_cardRadius)),
+          borderSide: BorderSide(color: AppColors.primaryBlueLight, width: 2),
+        ),
+        labelStyle: _getRobotoStyle(fontSize: 14, color: Colors.grey.shade300),
+        hintStyle: _getRobotoStyle(fontSize: 14, color: Colors.grey.shade600),
       ),
+
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.surfaceDark,
         foregroundColor: AppColors.textPrimaryDark,
         elevation: 2,
         centerTitle: true,
+        titleTextStyle: _getPoppinsStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryDark,
+        ),
       ),
     );
-  }}
+  }
+}

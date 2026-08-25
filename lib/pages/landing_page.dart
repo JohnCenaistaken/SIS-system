@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:report_portal_boom/Components/announcement_tile.dart';
-import 'package:report_portal_boom/Components/quick_stats.dart';
+import 'package:provider/provider.dart';
 import 'package:report_portal_boom/constants/app_colors.dart';
-import 'package:report_portal_boom/pages/login_page.dart';
+import 'package:report_portal_boom/models/announcement_model.dart';
 import 'package:report_portal_boom/providers/landing_page_provider.dart';
-import 'package:report_portal_boom/utilities/responsive_layout.dart';
+import 'package:report_portal_boom/utils/responsive_layout.dart';
 
-/// Website-style landing page for School SIS (Medium.com inspired)
+import 'login_page.dart';
+
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
@@ -16,162 +15,920 @@ class LandingPage extends StatefulWidget {
   State<LandingPage> createState() => _LandingPageState();
 }
 
-class _LandingPageState extends State<LandingPage>
-    with TickerProviderStateMixin {
-  late AnimationController _heroController;
+class _LandingPageState extends State<LandingPage> {
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _heroController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LandingPageProvider>().initialize();
-      _heroController.forward();
     });
   }
 
   @override
   void dispose() {
-    _heroController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _showStudentLogin() {
+  void _showLoginDialog() {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
-      builder: (context) => const LoginPage(),
-    );
-  }
-
-  void _showParentLogin() {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
-      builder: (context) => const LoginPage(),
+      barrierColor: Colors.black.withOpacity(0.4),
+      builder: (_) => const LoginPage(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildTopNavigationBar(context),
+      backgroundColor: AppColors.backgroundLight,
       body: Consumer<LandingPageProvider>(
-        builder: (context, provider, child) {
+        builder: (context, provider, _) {
           if (provider.isLoading) {
-            return _buildLoadingState();
+            return const Center(child: CircularProgressIndicator());
           }
-
-          if (provider.error != null && provider.features.isEmpty) {
+          if (provider.error != null && provider.announcements.isEmpty) {
             return _buildErrorState(provider);
           }
-
-          return _buildContent(context, provider);
+          return _buildPage(provider);
         },
       ),
     );
   }
 
-  /// Website-style top navigation bar (Medium.com inspired)
-  PreferredSizeWidget _buildTopNavigationBar(BuildContext context) {
+  Widget _buildPage(LandingPageProvider provider) {
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverToBoxAdapter(child: _buildNav()),
+        SliverToBoxAdapter(child: _buildHero()),
+        SliverToBoxAdapter(child: _buildFeatures()),
+        SliverToBoxAdapter(child: _buildRoleCards()),
+        SliverToBoxAdapter(child: _buildAnnouncements(provider)),
+        SliverToBoxAdapter(child: _buildFooter()),
+      ],
+    );
+  }
+
+  // ─────────────────────────── NAV ───────────────────────────
+
+  Widget _buildNav() {
     final isMobile = ResponsiveLayout.isMobile(context);
-    
-    return AppBar(
-      elevation: 0,
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      automaticallyImplyLeading: false,
-      title: _buildMaxWidthContainer(
-        child: Row(
-          children: [
-            // Logo
-            Row(
-              children: [
-                Icon(
-                  Icons.school,
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 48,
+        vertical: 14,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Row(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
                   color: AppColors.primaryBlue,
-                  size: 28,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'School Portal',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue,
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            // Navigation Links (desktop only)
-            if (!isMobile)
-              Row(
-                children: [
-                  _NavLink(label: 'Home', onTap: () {}),
-                  _NavLink(label: 'About', onTap: () {}),
-                  _NavLink(label: 'Features', onTap: () {}),
-                  _NavLink(label: 'Contact', onTap: () {}),
-                  const SizedBox(width: AppColors.spacingM),
-                  // Login Buttons
-                  TextButton(
-                    onPressed: _showStudentLogin,
-                    child: Text(
-                      'Student Login',
-                      style: GoogleFonts.roboto(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _showParentLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'Parent Login',
-                      style: GoogleFonts.roboto(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            else
-              // Mobile menu button
-              IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () {
-                  // Handle mobile menu
-                },
+                child: const Icon(Icons.school, color: Colors.white, size: 16),
               ),
+              const SizedBox(width: 10),
+              Text(
+                'School Portal',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          if (!isMobile) ...[
+            _navLink('Home'),
+            _navLink('Features'),
+            _navLink('About'),
+            _navLink('Contact'),
+            const SizedBox(width: 12),
           ],
-        ),
+          OutlinedButton(
+            onPressed: _showLoginDialog,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: BorderSide(color: Colors.grey.shade300),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              textStyle: GoogleFonts.roboto(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            child: const Text('Student login'),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: _showLoginDialog,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              textStyle: GoogleFonts.roboto(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            child: const Text('Teacher login'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildLoadingState() {
-    return const Center(
-      child: CircularProgressIndicator(),
+  Widget _navLink(String label) {
+    return TextButton(
+      onPressed: () {},
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.textSecondary,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        textStyle: GoogleFonts.roboto(fontSize: 13),
+      ),
+      child: Text(label),
+    );
+  }
+
+  // ─────────────────────────── HERO ───────────────────────────
+
+  Widget _buildHero() {
+    final isMobile = ResponsiveLayout.isMobile(context);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 48,
+        vertical: isMobile ? 56 : 80,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_awesome,
+                    size: 13, color: AppColors.primaryBlueDark),
+                const SizedBox(width: 6),
+                Text(
+                  'Academic year 2025–2026',
+                  style: GoogleFonts.roboto(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primaryBlueDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Your school, all in one place',
+            style: GoogleFonts.poppins(
+              fontSize: isMobile ? 30 : 44,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              height: 1.2,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Text(
+              'Access grades, reports, schedules and announcements. '
+                  'Built for students and teachers at Bright Future Academy.',
+              style: GoogleFonts.roboto(
+                fontSize: isMobile ? 14 : 16,
+                color: AppColors.textSecondary,
+                height: 1.6,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 36),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _showLoginDialog,
+                icon: const Icon(Icons.school_outlined, size: 16),
+                label: const Text('Student login'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  textStyle: GoogleFonts.roboto(
+                      fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _showLoginDialog,
+                icon: const Icon(Icons.person_outline, size: 16),
+                label: const Text('Teacher login'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: BorderSide(color: Colors.grey.shade300),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  textStyle: GoogleFonts.roboto(
+                      fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 56),
+          Wrap(
+            spacing: 0,
+            runSpacing: 24,
+            alignment: WrapAlignment.center,
+            children: [
+              _statItem('1,200+', 'Students enrolled'),
+              _statDivider(),
+              _statItem('80+', 'Teachers'),
+              _statDivider(),
+              _statItem('42', 'Classrooms'),
+              _statDivider(),
+              _statItem('Term 2', 'Currently active'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statItem(String value, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: GoogleFonts.roboto(
+                fontSize: 12, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statDivider() {
+    return Container(width: 0.5, height: 32, color: Colors.grey.shade200);
+  }
+
+  // ─────────────────────────── FEATURES ───────────────────────────
+
+  Widget _buildFeatures() {
+    final isMobile = ResponsiveLayout.isMobile(context);
+
+    final features = [
+      _FeatureData(
+        icon: Icons.bar_chart_outlined,
+        label: 'Grades & reports',
+        desc: 'View term results, progress reports and subject breakdowns at any time.',
+        bgColor: AppColors.primaryBlue.withOpacity(0.08),
+        iconColor: AppColors.primaryBlue,
+      ),
+      _FeatureData(
+        icon: Icons.calendar_today_outlined,
+        label: 'Class schedules',
+        desc: 'Never miss a lesson. Access your full timetable and upcoming events.',
+        bgColor: AppColors.secondaryGreen.withOpacity(0.1),
+        iconColor: AppColors.secondaryGreenDark,
+      ),
+      _FeatureData(
+        icon: Icons.notifications_outlined,
+        label: 'Announcements',
+        desc: 'Stay up to date with important school news and notices from administration.',
+        bgColor: AppColors.accentOrange.withOpacity(0.1),
+        iconColor: AppColors.accentOrangeDark,
+      ),
+      _FeatureData(
+        icon: Icons.description_outlined,
+        label: 'Report generation',
+        desc: 'Teachers can generate and distribute student reports with one click.',
+        bgColor: const Color(0xFF7C3AED).withOpacity(0.08),
+        iconColor: const Color(0xFF7C3AED),
+      ),
+      _FeatureData(
+        icon: Icons.groups_outlined,
+        label: 'Class management',
+        desc: 'Manage class rosters, mark attendance and track student performance.',
+        bgColor: AppColors.secondaryGreen.withOpacity(0.08),
+        iconColor: AppColors.secondaryGreenDark,
+      ),
+      _FeatureData(
+        icon: Icons.lock_outline,
+        label: 'Secure access',
+        desc: 'Role-based logins ensure each user only sees what is relevant to them.',
+        bgColor: AppColors.error.withOpacity(0.08),
+        iconColor: AppColors.error,
+      ),
+    ];
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 48,
+        vertical: 64,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLight,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionEyebrow('Features'),
+          const SizedBox(height: 10),
+          Text(
+            'Everything you need to stay on track',
+            style: GoogleFonts.poppins(
+              fontSize: isMobile ? 22 : 28,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Text(
+              'From academic progress to daily schedules — the portal keeps '
+                  'students, teachers, and parents aligned.',
+              style: GoogleFonts.roboto(
+                  fontSize: 15,
+                  color: AppColors.textSecondary,
+                  height: 1.6),
+            ),
+          ),
+          const SizedBox(height: 40),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isMobile ? 1 : 3,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: isMobile ? 3.5 : 1.6,
+            ),
+            itemCount: features.length,
+            itemBuilder: (_, i) => _featureCard(features[i]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _featureCard(_FeatureData f) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: f.bgColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(f.icon, color: f.iconColor, size: 18),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            f.label,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            f.desc,
+            style: GoogleFonts.roboto(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────── ROLE CARDS ───────────────────────────
+
+  Widget _buildRoleCards() {
+    final isMobile = ResponsiveLayout.isMobile(context);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 48,
+        vertical: 64,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionEyebrow('Access'),
+          const SizedBox(height: 10),
+          Text(
+            'Sign in as a student or teacher',
+            style: GoogleFonts.poppins(
+              fontSize: isMobile ? 22 : 28,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Text(
+              'Each role has its own dedicated experience, tailored to what matters most to you.',
+              style: GoogleFonts.roboto(
+                  fontSize: 15,
+                  color: AppColors.textSecondary,
+                  height: 1.6),
+            ),
+          ),
+          const SizedBox(height: 40),
+          isMobile
+              ? Column(children: [
+            _studentRoleCard(),
+            const SizedBox(height: 16),
+            _teacherRoleCard(),
+          ])
+              : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _studentRoleCard()),
+              const SizedBox(width: 16),
+              Expanded(child: _teacherRoleCard()),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _studentRoleCard() {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlue.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryBlue.withOpacity(0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.school_outlined,
+                    size: 13, color: AppColors.primaryBlueDark),
+                const SizedBox(width: 5),
+                Text(
+                  'Student',
+                  style: GoogleFonts.roboto(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primaryBlueDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('For students',
+              style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 8),
+          Text(
+            'Log in to check your grades, view your schedule and read the latest school announcements.',
+            style: GoogleFonts.roboto(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.6),
+          ),
+          const SizedBox(height: 20),
+          ...[
+            'View term grades and progress',
+            'Access your class timetable',
+            'Read school announcements',
+            'Download your report cards',
+          ].map((item) => _roleListItem(item, AppColors.primaryBlue)),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _showLoginDialog,
+            icon: const Icon(Icons.arrow_forward, size: 15),
+            label: const Text('Student login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              textStyle: GoogleFonts.roboto(
+                  fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _teacherRoleCard() {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.person_outline,
+                    size: 13, color: AppColors.textSecondary),
+                const SizedBox(width: 5),
+                Text(
+                  'Teacher',
+                  style: GoogleFonts.roboto(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('For teachers',
+              style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 8),
+          Text(
+            'Manage your classes, enter student marks, generate reports and keep track of your schedule.',
+            style: GoogleFonts.roboto(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.6),
+          ),
+          const SizedBox(height: 20),
+          ...[
+            'Manage classes and rosters',
+            'Enter and update student marks',
+            'Generate and send reports',
+            'View your full timetable',
+          ].map((item) =>
+              _roleListItem(item, AppColors.secondaryGreenDark)),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            onPressed: _showLoginDialog,
+            icon: const Icon(Icons.arrow_forward, size: 15),
+            label: const Text('Teacher login'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: BorderSide(color: Colors.grey.shade300),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              textStyle: GoogleFonts.roboto(
+                  fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _roleListItem(String text, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(Icons.check, size: 15, color: color),
+          const SizedBox(width: 8),
+          Text(text,
+              style: GoogleFonts.roboto(
+                  fontSize: 13, color: AppColors.textSecondary)),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────── ANNOUNCEMENTS ───────────────────────────
+
+  Widget _buildAnnouncements(LandingPageProvider provider) {
+    final isMobile = ResponsiveLayout.isMobile(context);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 48,
+        vertical: 64,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLight,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionEyebrow('Latest news'),
+          const SizedBox(height: 10),
+          Text(
+            'School announcements',
+            style: GoogleFonts.poppins(
+              fontSize: isMobile ? 22 : 28,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Important updates from the school administration.',
+            style: GoogleFonts.roboto(
+                fontSize: 15,
+                color: AppColors.textSecondary,
+                height: 1.6),
+          ),
+          const SizedBox(height: 32),
+          if (provider.isRefreshing)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 16),
+              child: LinearProgressIndicator(),
+            ),
+          if (provider.announcements.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  'No announcements available',
+                  style: GoogleFonts.roboto(
+                      fontSize: 14, color: AppColors.textSecondary),
+                ),
+              ),
+            )
+          else
+            ...provider.announcements.map((a) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _announcementItem(a),
+            )),
+        ],
+      ),
+    );
+  }
+
+  // Takes AnnouncementModel directly from SisService
+  Widget _announcementItem(AnnouncementModel a) {
+    final color = _categoryColor(a.category);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 5),
+            decoration:
+            BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  a.title,
+                  style: GoogleFonts.roboto(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${a.categoryLabel} · ${_timeAgo(a.publishedAt)}',
+                  style: GoogleFonts.roboto(
+                      fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          if (a.isPinned)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Icon(Icons.push_pin_outlined,
+                  size: 14, color: AppColors.textTertiary),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Color _categoryColor(AnnouncementCategory category) {
+    switch (category) {
+      case AnnouncementCategory.administration:
+        return AppColors.primaryBlue;
+      case AnnouncementCategory.academics:
+        return AppColors.secondaryGreen;
+      case AnnouncementCategory.events:
+        return AppColors.accentOrange;
+      case AnnouncementCategory.sports:
+        return AppColors.error;
+      case AnnouncementCategory.general:
+        return const Color(0xFF7C3AED);
+    }
+  }
+
+  String _timeAgo(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays == 0) return 'Today';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    if (diff.inDays < 14) return '1 week ago';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} weeks ago';
+    return '${(diff.inDays / 30).floor()} months ago';
+  }
+
+  // ─────────────────────────── FOOTER ───────────────────────────
+
+  Widget _buildFooter() {
+    final isMobile = ResponsiveLayout.isMobile(context);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 48,
+        vertical: 32,
+      ),
+      color: Colors.white,
+      child: isMobile
+          ? Column(children: [
+        _footerLogo(),
+        const SizedBox(height: 16),
+        _footerLinks(),
+        const SizedBox(height: 16),
+        _footerCopy(),
+      ])
+          : Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _footerLogo(),
+          _footerLinks(),
+          _footerCopy(),
+        ],
+      ),
+    );
+  }
+
+  Widget _footerLogo() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: AppColors.primaryBlue,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Icon(Icons.school, color: Colors.white, size: 13),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'School Portal',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _footerLinks() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: ['Privacy', 'Terms', 'Contact'].map((label) {
+        return TextButton(
+          onPressed: () {},
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textSecondary,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: GoogleFonts.roboto(fontSize: 12),
+          ),
+          child: Text(label),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _footerCopy() {
+    return Text(
+      '© ${DateTime.now().year} School Portal. All rights reserved.',
+      style:
+      GoogleFonts.roboto(fontSize: 12, color: AppColors.textSecondary),
+    );
+  }
+
+  // ─────────────────────────── HELPERS ───────────────────────────
+
+  Widget _sectionEyebrow(String label) {
+    return Text(
+      label.toUpperCase(),
+      style: GoogleFonts.roboto(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: AppColors.primaryBlue,
+        letterSpacing: 0.6,
+      ),
     );
   }
 
@@ -180,19 +937,15 @@ class _LandingPageState extends State<LandingPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-          const SizedBox(height: AppColors.spacingM),
-          Text(
-            'Something went wrong',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: AppColors.spacingS),
-          Text(
-            provider.error ?? 'Unknown error',
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppColors.spacingL),
+          const Icon(Icons.error_outline,
+              size: 48, color: AppColors.error),
+          const SizedBox(height: 16),
+          Text('Something went wrong',
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(provider.error ?? 'Unknown error',
+              style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: provider.retry,
             icon: const Icon(Icons.refresh),
@@ -202,573 +955,21 @@ class _LandingPageState extends State<LandingPage>
       ),
     );
   }
-
-  Widget _buildContent(BuildContext context, LandingPageProvider provider) {
-    return RefreshIndicator(
-      onRefresh: provider.refreshAnnouncements,
-      child: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // Hero Section
-          _buildHeroSection(context),
-          
-          // Quick Stats Section
-          _buildQuickStatsSection(context, provider),
-          
-          // Features/Quick Access Section
-          _buildFeaturesSection(context, provider),
-          
-          // Announcements Section
-          _buildAnnouncementsSection(context, provider),
-          
-          // Footer
-          _buildFooter(context),
-        ],
-      ),
-    );
-  }
-
-  /// Max-width container for website-style layout (Medium.com style)
-  Widget _buildMaxWidthContainer({required Widget child}) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1200),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: ResponsiveLayout.isMobile(context)
-                ? AppColors.spacingM
-                : AppColors.spacingXL,
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-
-  /// Hero Section - Clean, editorial style
-  Widget _buildHeroSection(BuildContext context) {
-    final isMobile = ResponsiveLayout.isMobile(context);
-
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: isMobile ? AppColors.spacingXXL : 120,
-        ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primaryBlue,
-              AppColors.primaryBlueLight,
-            ],
-          ),
-        ),
-        child: _buildMaxWidthContainer(
-          child: FadeTransition(
-            opacity: _heroController,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // School Icon
-                SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, -0.3),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: _heroController,
-                    curve: Curves.easeOut,
-                  )),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.school,
-                      size: isMobile ? 56 : 72,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(height: isMobile ? AppColors.spacingL : AppColors.spacingXL),
-
-                // Main Title
-                SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, -0.2),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: _heroController,
-                    curve: Curves.easeOut,
-                  )),
-                  child: Text(
-                    'Student & Parent Portal',
-                    style: GoogleFonts.poppins(
-                      fontSize: isMobile ? 32 : 56,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      height: 1.2,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                SizedBox(height: isMobile ? AppColors.spacingM : AppColors.spacingL),
-
-                // Subtitle
-                SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, -0.1),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: _heroController,
-                    curve: Curves.easeOut,
-                  )),
-                  child: Text(
-                    'Your gateway to academic success. Access grades, schedules, assignments, and more.',
-                    style: GoogleFonts.roboto(
-                      fontSize: isMobile ? 16 : 20,
-                      color: Colors.white.withOpacity(0.95),
-                      height: 1.6,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                SizedBox(height: isMobile ? AppColors.spacingXL : 60),
-
-                // Action Buttons
-                SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.3),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: _heroController,
-                    curve: Curves.easeOut,
-                  )),
-                  child: Wrap(
-                    spacing: AppColors.spacingM,
-                    runSpacing: AppColors.spacingM,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: _showStudentLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.primaryBlue,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 32 : 40,
-                            vertical: isMobile ? 16 : 20,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: Text(
-                          'Student Login',
-                          style: GoogleFonts.roboto(
-                            fontSize: isMobile ? 16 : 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      OutlinedButton(
-                        onPressed: _showParentLogin,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white, width: 2),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 32 : 40,
-                            vertical: isMobile ? 16 : 20,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Parent Login',
-                          style: GoogleFonts.roboto(
-                            fontSize: isMobile ? 16 : 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Quick Stats Section
-  Widget _buildQuickStatsSection(
-      BuildContext context, LandingPageProvider provider) {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: ResponsiveLayout.isMobile(context)
-              ? AppColors.spacingXXL
-              : 80,
-        ),
-        color: AppColors.backgroundLight,
-        child: _buildMaxWidthContainer(
-          child: QuickStatsWidget(stats: provider.quickStats),
-        ),
-      ),
-    );
-  }
-
-  /// Features/Quick Access Section
-  Widget _buildFeaturesSection(
-      BuildContext context, LandingPageProvider provider) {
-    final isMobile = ResponsiveLayout.isMobile(context);
-    final quickActions = [
-      _QuickAction(
-        icon: Icons.assessment,
-        label: 'Grades',
-        color: AppColors.primaryBlue,
-        description: 'Track your academic performance',
-      ),
-      _QuickAction(
-        icon: Icons.calendar_today,
-        label: 'Schedule',
-        color: AppColors.secondaryGreen,
-        description: 'View your class timetable',
-      ),
-      _QuickAction(
-        icon: Icons.assignment,
-        label: 'Assignments',
-        color: AppColors.accentOrange,
-        description: 'Manage your tasks',
-      ),
-      _QuickAction(
-        icon: Icons.event_note,
-        label: 'Events',
-        color: AppColors.primaryBlue,
-        description: 'School activities & dates',
-      ),
-    ];
-
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: ResponsiveLayout.isMobile(context)
-              ? AppColors.spacingXXL
-              : 80,
-        ),
-        child: _buildMaxWidthContainer(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Section Header
-              Text(
-                'Quick Access',
-                style: GoogleFonts.poppins(
-                  fontSize: isMobile ? 28 : 40,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: AppColors.spacingS),
-              Text(
-                'Everything you need to manage your academic journey',
-                style: GoogleFonts.roboto(
-                  fontSize: isMobile ? 16 : 18,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
-                ),
-              ),
-              SizedBox(height: isMobile ? AppColors.spacingXL : AppColors.spacingXXL),
-
-              // Features Grid
-              isMobile
-                  ? Column(
-                      children: quickActions
-                          .map((action) => Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppColors.spacingM,
-                                ),
-                                child: _QuickActionCard(action: action),
-                              ))
-                          .toList(),
-                    )
-                  : GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        crossAxisSpacing: AppColors.spacingL,
-                        mainAxisSpacing: AppColors.spacingL,
-                        childAspectRatio: 1.1,
-                      ),
-                      itemCount: quickActions.length,
-                      itemBuilder: (context, index) {
-                        return _QuickActionCard(action: quickActions[index]);
-                      },
-                    ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Announcements Section
-  Widget _buildAnnouncementsSection(
-      BuildContext context, LandingPageProvider provider) {
-    final isMobile = ResponsiveLayout.isMobile(context);
-
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: ResponsiveLayout.isMobile(context)
-              ? AppColors.spacingXXL
-              : 80,
-        ),
-        color: AppColors.backgroundLight,
-        child: _buildMaxWidthContainer(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Section Header
-              Text(
-                'Latest Announcements',
-                style: GoogleFonts.poppins(
-                  fontSize: isMobile ? 28 : 40,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: AppColors.spacingS),
-              Text(
-                'Stay updated with important news and updates from your school',
-                style: GoogleFonts.roboto(
-                  fontSize: isMobile ? 16 : 18,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
-                ),
-              ),
-              SizedBox(height: isMobile ? AppColors.spacingXL : AppColors.spacingXXL),
-
-              // Announcements List
-              provider.announcements.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppColors.spacingXXL),
-                        child: Text(
-                          'No announcements available',
-                          style: GoogleFonts.roboto(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    )
-                  : Column(
-                      children: provider.announcements.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final announcement = entry.value;
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: AppColors.spacingM,
-                          ),
-                          child: AnnouncementTile(
-                            announcement: announcement,
-                            onTap: () => provider.toggleAnnouncement(index),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Footer Section
-  Widget _buildFooter(BuildContext context) {
-    final isMobile = ResponsiveLayout.isMobile(context);
-
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: isMobile ? AppColors.spacingXL : AppColors.spacingXXL,
-        ),
-        color: AppColors.textPrimary,
-        child: _buildMaxWidthContainer(
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Logo
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.school,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'School Portal',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Links (desktop only)
-                  if (!isMobile)
-                    Row(
-                      children: [
-                        _FooterLink(label: 'Privacy', onTap: () {}),
-                        _FooterLink(label: 'Terms', onTap: () {}),
-                        _FooterLink(label: 'Contact', onTap: () {}),
-                      ],
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppColors.spacingL),
-              Divider(color: Colors.white.withOpacity(0.2)),
-              const SizedBox(height: AppColors.spacingL),
-              Text(
-                '© ${DateTime.now().year} School Portal. All rights reserved.',
-                style: GoogleFonts.roboto(
-                  fontSize: 14,
-                  color: Colors.white.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-/// Navigation Link Widget
-class _NavLink extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
+// ─────────────────────────── DATA MODELS ───────────────────────────
 
-  const _NavLink({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        foregroundColor: AppColors.textPrimary,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.roboto(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
-
-/// Footer Link Widget
-class _FooterLink extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _FooterLink({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.white.withOpacity(0.8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.roboto(
-          fontSize: 14,
-        ),
-      ),
-    );
-  }
-}
-
-/// Quick Action Model
-class _QuickAction {
+class _FeatureData {
   final IconData icon;
   final String label;
-  final Color color;
-  final String description;
-
-  _QuickAction({
+  final String desc;
+  final Color bgColor;
+  final Color iconColor;
+  const _FeatureData({
     required this.icon,
     required this.label,
-    required this.color,
-    required this.description,
+    required this.desc,
+    required this.bgColor,
+    required this.iconColor,
   });
-}
-
-/// Quick Action Card Widget
-class _QuickActionCard extends StatelessWidget {
-  final _QuickAction action;
-
-  const _QuickActionCard({required this.action});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: () {
-          // Handle quick action tap
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(AppColors.spacingL),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(action.icon, color: action.color, size: 36),
-              const SizedBox(height: AppColors.spacingM),
-              Text(
-                action.label,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                action.description,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondary,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
